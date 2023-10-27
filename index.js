@@ -1,27 +1,18 @@
 const qrcode = require('qrcode-terminal');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const db = require('./db.js');
-
-// Crea una instancia de la clase Client para el bot de WhatsApp
-const client = new Client({
-    authStrategy: new LocalAuth() // Utiliza la autenticación local
-});
-
-// Importa el módulo express para crear una aplicación web
 const express = require('express');
 const app = express();
-
-// Define rutas y controladores de Express aquí
-
-// Define el puerto en el que se ejecutará la aplicación, usando 3000 como valor predeterminado
 const port = process.env.PORT || 3000;
 
-// Inicia la aplicación y comienza a escuchar en el puerto especificado
+const client = new Client({
+    authStrategy: new LocalAuth()
+});
+
 app.listen(port, () => {
     console.log(`La aplicación está escuchando en el puerto ${port}`);
 });
 
-// Conecta a la base de datos
 db.connect()
     .then(() => {
         console.log('Conectado a la base de datos');
@@ -30,25 +21,45 @@ db.connect()
         console.log('Error al conectar a la base de datos: ', err);
     });
 
-// Configura un evento para mostrar el código QR de autenticación
+const regex = /^Pedido (\d+)$/;
+
 client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
 });
 
-// Configura un evento que se dispara cuando el cliente de WhatsApp está listo
 client.on('ready', () => {
     console.log('Conexión exitosa');
 });
 
-// Configura un evento que se dispara cuando se recibe un mensaje
-client.on('message', message => {
+client.on('message', async (message) => {
     console.log(message.body);
+    const match = message.body.match(regex);
 
-    // Puedes responder a mensajes aquí
-    if (message.body.toLowerCase() === 'hola') {
-        client.sendMessage(message.from, 'Hola, soy un bot');
+    if (match) {
+        const numeroPedido = match[1];
+
+        try {
+            const result = await db.query(
+                `SELECT est_descri FROM tesis.Pedido
+                LEFT JOIN tesis.Estado ON ped_estado = est_codigo
+                WHERE ped_codigo = ${numeroPedido};`
+            );
+
+            if (result.length > 0) {
+                const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
+                console.log(estadoPedido);
+                const responseMessage = `Estado pedido: ${estadoPedido}`;                
+                client.sendMessage(message.from, responseMessage);
+            } else {
+                client.sendMessage(message.from, "No se encontró el pedido especificado.");
+            }
+        } catch (error) {
+            console.error('Error al consultar la base de datos:', error);
+            client.sendMessage(message.from, "Ocurrió un error al consultar la base de datos.");
+        }
+    } else if (message.body.toLowerCase() === 'hola') {
+        client.sendMessage(message.from, 'Porfavor envia el mensaje "Pedido NÚMERO PEDIDO');
     }
 });
 
-// Inicializa el cliente de WhatsApp
 client.initialize();
