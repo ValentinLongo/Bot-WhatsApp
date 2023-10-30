@@ -57,8 +57,8 @@ client.on('message', async (message) => {
             console.error('Error al consultar la base de datos:', error);
             client.sendMessage(message.from, "Ocurrió un error al consultar la base de datos.");
         }
-    } else if (message.body.toLowerCase() === 'hola') {
-        client.sendMessage(message.from, 'Porfavor envia el mensaje "Pedido NÚMERO PEDIDO');
+    } else {
+        client.sendMessage(message.from, 'El formato del mensaje debe ser "Pedido NÚMERO_PEDIDO" Ejemplo: Pedido 1524. Por favor, asegúrate de incluir la palabra "Pedido" seguida de un espacio y el número de pedido.');
     }
 });
 
