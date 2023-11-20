@@ -38,7 +38,7 @@ client.on('message', async (message) => {
 
     if (!estados[from]) {
         // Si no hay un estado para este número
-        client.sendMessage(from, 'Seleccione 1 para buscar por número de pedido o 2 para buscar por número de documento');
+        client.sendMessage(from, 'Hola! Por favor seleccione 1 para buscar por número de pedido o 2 para buscar por número de documento');
         estados[from] = 'SELECT_TYPE'; // Establecer el estado como 'SELECT_TYPE'
     } else {
         const currentState = estados[from];
@@ -56,67 +56,59 @@ client.on('message', async (message) => {
                 }
                 break;
 
-        case 'PEDIDO_NUMBER':
-            const match = message.body.match(numeroPedidoRegex);
-            if (match) {
-                const numeroPedido = match[1];
-                try {
-                    const result = await db.query(
-                        `SELECT est_descri FROM tesis.Pedido
-                        LEFT JOIN tesis.Estado ON ped_estado = est_codigo
-                        LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
-                        WHERE ped_codigo = ${numeroPedido};`
-                    );
-                    if (result.length > 0) {
-                        const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
-                        client.sendMessage(from, `Estado del pedido: ${estadoPedido}`);
-                    } else {
-                        client.sendMessage(from, "No se encontró el pedido especificado.");
-                    }
-                } catch (error) {
-                    if (error.message.includes('No se encontró el pedido')) {
-                        client.sendMessage(from, "No se encontró el pedido especificado.");
-                    } else {
+            case 'PEDIDO_NUMBER':
+                const match = message.body.match(numeroPedidoRegex);
+                if (match) {
+                    const numeroPedido = match[1];
+                    try {
+                        const result = await db.query(
+                            `SELECT est_descri FROM tesis.Pedido
+                            LEFT JOIN tesis.Estado ON ped_estado = est_codigo
+                            LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
+                            WHERE ped_codigo = ${numeroPedido};`
+                        );
+                        if (result.length > 0 && result[0][0] && result[0][0]["est_descri"]) {
+                            const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
+                            client.sendMessage(from, `Estado del pedido: ${estadoPedido}`);
+                        } else {
+                            client.sendMessage(from, "No se encontró el pedido especificado.");
+                        }
+                    } catch (error) {
                         console.error('Error al consultar la base de datos:', error);
                         client.sendMessage(from, "Ocurrió un error al consultar la base de datos.");
                     }
+                    delete estados[from];
+                } else {
+                    client.sendMessage(from, 'Por favor, envíe un número de pedido válido');
                 }
-                delete estados[from];
-            } else {
-                client.sendMessage(from, 'Por favor, envíe un número de pedido válido');
-            }
-            break;
+                break;
 
-        case 'DOCUMENT_NUMBER':
-            const matchDocumento = message.body.match(numeroDocumentoRegex);
-            if (matchDocumento) {
-                const numeroDocumento = matchDocumento[1];
-                try {
-                    const result = await db.query(
-                        `SELECT est_descri FROM tesis.Pedido
-                        LEFT JOIN tesis.Estado ON ped_estado = est_codigo
-                        LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
-                        WHERE usu_dni = ${numeroDocumento};`
-                    );
-                    if (result.length > 0) {
-                        const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
-                        client.sendMessage(from, `Estado del pedido: ${estadoPedido}`);
-                    } else {
-                        client.sendMessage(from, "No se encontró el documento especificado.");
-                    }
-                } catch (error) {
-                    if (error.message.includes('No se encontró el documento')) {
-                        client.sendMessage(from, "No se encontró el documento especificado.");
-                    } else {
+            case 'DOCUMENT_NUMBER':
+                const matchDocumento = message.body.match(numeroDocumentoRegex);
+                if (matchDocumento) {
+                    const numeroDocumento = matchDocumento[1];
+                    try {
+                        const result = await db.query(
+                            `SELECT est_descri FROM tesis.Pedido
+                            LEFT JOIN tesis.Estado ON ped_estado = est_codigo
+                            LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
+                            WHERE usu_dni = ${numeroDocumento};`
+                        );
+                        if (result.length > 0 && result[0][0] && result[0][0]["est_descri"]) {
+                            const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
+                            client.sendMessage(from, `Estado del pedido: ${estadoPedido}`);
+                        } else {
+                            client.sendMessage(from, "No se encontró el documento especificado.");
+                        }
+                    } catch (error) {
                         console.error('Error al consultar la base de datos:', error);
                         client.sendMessage(from, "Ocurrió un error al consultar la base de datos.");
                     }
+                    delete estados[from];
+                } else {
+                    client.sendMessage(from, 'Por favor, envíe un número de documento válido');
                 }
-                delete estados[from];
-            } else {
-                client.sendMessage(from, 'Por favor, envíe un número de documento válido');
-            }
-            break;
+                break;
         }
     }
 });
