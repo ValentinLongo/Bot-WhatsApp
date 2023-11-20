@@ -47,10 +47,10 @@ client.on('message', async (message) => {
             case 'SELECT_TYPE':
                 if (message.body === '1') {
                     estados[from] = 'PEDIDO_NUMBER';
-                    client.sendMessage(from, 'Envíe el número de pedido');
+                    client.sendMessage(from, 'Por favor envíe el número de pedido');
                 } else if (message.body === '2') {
                     estados[from] = 'DOCUMENT_NUMBER';
-                    client.sendMessage(from, 'Envíe el número de documento');
+                    client.sendMessage(from, 'Por favor envíe el número de documento');
                 } else {
                     client.sendMessage(from, 'Por favor, seleccione 1 o 2');
                 }
@@ -62,14 +62,15 @@ client.on('message', async (message) => {
                     const numeroPedido = match[1];
                     try {
                         const result = await db.query(
-                            `SELECT est_descri FROM tesis.Pedido
+                            `SELECT est_descri, usu_nombre FROM tesis.Pedido
                             LEFT JOIN tesis.Estado ON ped_estado = est_codigo
                             LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
                             WHERE ped_codigo = ${numeroPedido};`
                         );
                         if (result.length > 0 && result[0][0] && result[0][0]["est_descri"]) {
                             const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
-                            client.sendMessage(from, `Estado del pedido: ${estadoPedido}`);
+                            const usuNombre = JSON.stringify(result[0][0]["usu_nombre"]);
+                            client.sendMessage(from, `Hola ${usuNombre} el estado del pedido es: ${estadoPedido}`);
                         } else {
                             client.sendMessage(from, "No se encontró el pedido especificado.");
                         }
@@ -89,16 +90,17 @@ client.on('message', async (message) => {
                     const numeroDocumento = matchDocumento[1];
                     try {
                         const result = await db.query(
-                            `SELECT est_descri FROM tesis.Pedido
+                            `SELECT est_descri, usu_nombre FROM tesis.Pedido
                             LEFT JOIN tesis.Estado ON ped_estado = est_codigo
                             LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
                             WHERE usu_dni = ${numeroDocumento};`
                         );
                         if (result.length > 0 && result[0][0] && result[0][0]["est_descri"]) {
                             const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
-                            client.sendMessage(from, `Estado del pedido: ${estadoPedido}`);
+                            const usuNombre = JSON.stringify(result[0][0]["usu_nombre"]);
+                            client.sendMessage(from, `Hola ${usuNombre} el estado del pedido es: ${estadoPedido}`);
                         } else {
-                            client.sendMessage(from, "No se encontró el documento especificado.");
+                            client.sendMessage(from, "No se encontró el pedido con el documento especificado.");
                         }
                     } catch (error) {
                         console.error('Error al consultar la base de datos:', error);
