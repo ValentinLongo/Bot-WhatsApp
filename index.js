@@ -11,6 +11,9 @@ const client = new Client({
 
 const estados = {}; // Almacena los estados por número de teléfono
 
+app.use(express.json());
+
+
 app.listen(port, () => {
     console.log(`La aplicación está escuchando en el puerto ${port}`);
 });
@@ -29,6 +32,23 @@ client.on('qr', qr => {
 
 client.on('ready', () => {
     console.log('Conexión exitosa');
+});
+
+
+app.post('/enviar-mensaje', async (req, res) => {
+    try {
+        const mensaje = req.body.mensaje;
+        const numeroDestino = req.body.numero;
+        console.log(numeroDestino);
+
+        if(numeroDestino){
+         client.sendMessage(numeroDestino, mensaje);                
+        }
+        res.status(200).json({ status: 'Mensaje enviado correctamente' });
+    } catch (error) {
+        console.error('Error al enviar el mensaje:', error);
+        res.status(500).json({ error: 'Ocurrió un error al enviar el mensaje' });
+    }
 });
 
 client.on('message', async (message) => {
@@ -62,7 +82,7 @@ client.on('message', async (message) => {
                     const numeroPedido = match[1];
                     try {
                         const result = await db.query(
-                            `SELECT est_descri, usu_nombre FROM tesis.Pedido
+                            `SELECT est_descri, usu_nombre, ped_observacion FROM tesis.Pedido
                             LEFT JOIN tesis.Estado ON ped_estado = est_codigo
                             LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
                             WHERE ped_codigo = ${numeroPedido};`
@@ -70,7 +90,8 @@ client.on('message', async (message) => {
                         if (result.length > 0 && result[0][0] && result[0][0]["est_descri"]) {
                             const estadoPedido = JSON.stringify(result[0][0]["est_descri"]);
                             const usuNombre = JSON.stringify(result[0][0]["usu_nombre"]);
-                            client.sendMessage(from, `Hola ${usuNombre}, el estado del pedido es: ${estadoPedido}`);
+                            const observacion = JSON.stringify(result[0][0]["ped_observacion"]);
+                            client.sendMessage(from, `Hola ${usuNombre}, el estado del pedido es: ${estadoPedido}, observaciones: ${observacion}`);
                         } else {
                             client.sendMessage(from, "No se encontró el pedido especificado.");
                         }
@@ -90,7 +111,7 @@ client.on('message', async (message) => {
                         const numeroDocumento = matchDocumento[1];
                         try {
                             const result = await db.query(
-                                `SELECT ped_codigo, est_descri, usu_nombre FROM tesis.Pedido
+                                `SELECT ped_codigo, est_descri, usu_nombre, ped_observacion FROM tesis.Pedido
                                 LEFT JOIN tesis.Estado ON ped_estado = est_codigo
                                 LEFT JOIN tesis.Usuario ON ped_usuario = usu_codigo
                                 WHERE usu_dni = ${numeroDocumento};`
@@ -101,7 +122,8 @@ client.on('message', async (message) => {
                                 for (let i = 0; i < result[0].length; i++) {
                                     const ped_codigo = JSON.stringify(result[0][i]["ped_codigo"]);
                                     const est_descri = JSON.stringify(result[0][i]["est_descri"]);
-                                    messageToSend += `Pedido: ${ped_codigo}, Estado: ${est_descri}\n`;
+                                    const observacion = JSON.stringify(result[0][i]["ped_observacion"]);
+                                    messageToSend += `Pedido: ${ped_codigo}, Estado: ${est_descri}, Observación: ${observacion}\n`;
                                 };
                                 client.sendMessage(from, messageToSend);
                             } else {
